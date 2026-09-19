@@ -429,11 +429,25 @@ Rules:
 // ================= API ROUTES =================
 
 // Health check
-app.get(["/", "/api", "/api/health"], (req, res, next) => {
-  // If requesting root / and frontend dist exists, let static handler serve it
+app.get("/api/health", (req, res) => {
+  res.json({
+    success: true,
+    message: "🎬 AI Short Maker API is active & running!",
+    hasGeminiKey: Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== "your_gemini_api_key_here"),
+  });
+});
+
+app.get("/api", (req, res) => {
+  res.json({
+    success: true,
+    message: "🎬 AI Short Maker API is active & running!",
+  });
+});
+
+app.get("/", (req, res, next) => {
   const frontendDist = path.join(__dirname, "../frontend/dist");
-  if (req.path === "/" && fs.existsSync(frontendDist)) {
-    return next();
+  if (fs.existsSync(frontendDist)) {
+    return res.sendFile(path.join(frontendDist, "index.html"));
   }
   res.json({
     success: true,
