@@ -131,14 +131,21 @@ export async function downloadYouTubeSection(videoId, startSec, endSec, destinat
   const startFormatted = Math.max(0, Math.floor(startSec));
   const endFormatted = Math.ceil(endSec);
 
+  const ffmpegDir = ffmpegPath ? path.dirname(ffmpegPath) : null;
+  if (ffmpegPath && fs.existsSync(ffmpegPath) && process.platform !== "win32") {
+    try {
+      fs.chmodSync(ffmpegPath, 0o755);
+    } catch (e) {}
+  }
+
   console.log(`[Lightning-Fast] Downloading section: [${startFormatted}s - ${endFormatted}s] for video ${videoId}...`);
 
   const clientOptions = [
+    [],
+    ["--extractor-args", "youtube:player_client=visionos,web"],
     ["--extractor-args", "youtube:player_client=android,ios"],
     ["--extractor-args", "youtube:player_client=mweb,web"],
-    ["--extractor-args", "youtube:player_client=android_vr"],
     ["--extractor-args", "youtube:player_client=tv"],
-    [],
   ];
 
   let lastError = null;
@@ -147,16 +154,13 @@ export async function downloadYouTubeSection(videoId, startSec, endSec, destinat
       const args = [
         "--no-warnings",
         "--no-check-certificates",
-        "--user-agent",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+        ...(ffmpegDir ? ["--ffmpeg-location", ffmpegDir] : []),
         ...clientOpt,
-        "--ffmpeg-location",
-        ffmpegPath,
         "--download-sections",
         `*${startFormatted}-${endFormatted}`,
         "--force-keyframes-at-cuts",
         "-f",
-        "bv*[height<=720]+ba/b[height<=720]/best[ext=mp4]/best",
+        "bestvideo[height<=720]+bestaudio/best[height<=720]/best",
         "--merge-output-format",
         "mp4",
         "-o",
@@ -187,7 +191,7 @@ export async function downloadYouTubeSection(videoId, startSec, endSec, destinat
 
   const errText = lastError?.message || "";
   if (errText.includes("Failed to extract any player response") || errText.includes("Sign in") || errText.includes("PO Token")) {
-    throw new Error("YouTube has strict DRM/anti-bot protection on this specific music/copyrighted video. Please try a podcast, interview, speech, or lecture URL, or use the 'Upload Video' tab directly!");
+    throw new Error("YouTube has restricted direct cloud downloads for this video. Please try another podcast or lecture URL, or use the 'Upload Video' tab directly!");
   }
   throw lastError || new Error("Failed to download YouTube section.");
 }
@@ -205,14 +209,21 @@ export async function downloadYouTubeVideo(url, destinationPath) {
   const info = await getYouTubeInfo(url);
   const title = info.title || "YouTube Video";
 
+  const ffmpegDir = ffmpegPath ? path.dirname(ffmpegPath) : null;
+  if (ffmpegPath && fs.existsSync(ffmpegPath) && process.platform !== "win32") {
+    try {
+      fs.chmodSync(ffmpegPath, 0o755);
+    } catch (e) {}
+  }
+
   console.log(`Downloading YouTube video with yt-dlp: "${title}" (ID: ${videoId})...`);
 
   const clientOptions = [
+    [],
+    ["--extractor-args", "youtube:player_client=visionos,web"],
     ["--extractor-args", "youtube:player_client=android,ios"],
     ["--extractor-args", "youtube:player_client=mweb,web"],
-    ["--extractor-args", "youtube:player_client=android_vr"],
     ["--extractor-args", "youtube:player_client=tv"],
-    [],
   ];
 
   let lastError = null;
@@ -221,13 +232,10 @@ export async function downloadYouTubeVideo(url, destinationPath) {
       const args = [
         "--no-warnings",
         "--no-check-certificates",
-        "--user-agent",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+        ...(ffmpegDir ? ["--ffmpeg-location", ffmpegDir] : []),
         ...clientOpt,
-        "--ffmpeg-location",
-        ffmpegPath,
         "-f",
-        "bv*[height<=720]+ba/b[height<=720]/best[ext=mp4]/best",
+        "bestvideo[height<=720]+bestaudio/best[height<=720]/best",
         "--merge-output-format",
         "mp4",
         "-o",
@@ -262,7 +270,7 @@ export async function downloadYouTubeVideo(url, destinationPath) {
 
   const errText = lastError?.message || "";
   if (errText.includes("Failed to extract any player response") || errText.includes("Sign in") || errText.includes("PO Token")) {
-    throw new Error("YouTube has strict DRM/anti-bot protection on this specific music/copyrighted video. Please try a podcast, interview, speech, or lecture URL, or use the 'Upload Video' tab directly!");
+    throw new Error("YouTube has restricted direct cloud downloads for this video. Please try another podcast or lecture URL, or use the 'Upload Video' tab directly!");
   }
   throw lastError || new Error("Downloaded video file not found on disk.");
 }
