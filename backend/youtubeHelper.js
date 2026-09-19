@@ -134,11 +134,11 @@ export async function downloadYouTubeSection(videoId, startSec, endSec, destinat
   console.log(`[Lightning-Fast] Downloading section: [${startFormatted}s - ${endFormatted}s] for video ${videoId}...`);
 
   const clientOptions = [
-    [],
     ["--extractor-args", "youtube:player_client=android,ios"],
+    ["--extractor-args", "youtube:player_client=mweb,web"],
     ["--extractor-args", "youtube:player_client=android_vr"],
-    ["--extractor-args", "youtube:player_client=mweb"],
     ["--extractor-args", "youtube:player_client=tv"],
+    [],
   ];
 
   let lastError = null;
@@ -147,6 +147,8 @@ export async function downloadYouTubeSection(videoId, startSec, endSec, destinat
       const args = [
         "--no-warnings",
         "--no-check-certificates",
+        "--user-agent",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
         ...clientOpt,
         "--ffmpeg-location",
         ffmpegPath,
@@ -183,6 +185,10 @@ export async function downloadYouTubeSection(videoId, startSec, endSec, destinat
     }
   }
 
+  const errText = lastError?.message || "";
+  if (errText.includes("Failed to extract any player response") || errText.includes("Sign in") || errText.includes("PO Token")) {
+    throw new Error("YouTube has strict DRM/anti-bot protection on this specific music/copyrighted video. Please try a podcast, interview, speech, or lecture URL, or use the 'Upload Video' tab directly!");
+  }
   throw lastError || new Error("Failed to download YouTube section.");
 }
 
@@ -202,10 +208,11 @@ export async function downloadYouTubeVideo(url, destinationPath) {
   console.log(`Downloading YouTube video with yt-dlp: "${title}" (ID: ${videoId})...`);
 
   const clientOptions = [
-    [],
     ["--extractor-args", "youtube:player_client=android,ios"],
-    ["--extractor-args", "youtube:player_client=mweb"],
+    ["--extractor-args", "youtube:player_client=mweb,web"],
     ["--extractor-args", "youtube:player_client=android_vr"],
+    ["--extractor-args", "youtube:player_client=tv"],
+    [],
   ];
 
   let lastError = null;
@@ -214,6 +221,8 @@ export async function downloadYouTubeVideo(url, destinationPath) {
       const args = [
         "--no-warnings",
         "--no-check-certificates",
+        "--user-agent",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
         ...clientOpt,
         "--ffmpeg-location",
         ffmpegPath,
@@ -251,5 +260,9 @@ export async function downloadYouTubeVideo(url, destinationPath) {
     }
   }
 
+  const errText = lastError?.message || "";
+  if (errText.includes("Failed to extract any player response") || errText.includes("Sign in") || errText.includes("PO Token")) {
+    throw new Error("YouTube has strict DRM/anti-bot protection on this specific music/copyrighted video. Please try a podcast, interview, speech, or lecture URL, or use the 'Upload Video' tab directly!");
+  }
   throw lastError || new Error("Downloaded video file not found on disk.");
 }
